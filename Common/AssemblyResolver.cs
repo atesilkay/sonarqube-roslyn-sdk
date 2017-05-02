@@ -60,15 +60,21 @@ namespace SonarQube.Plugins.Common
             // This line required to resolve the Resources object before additional assembly resolution is added
             // Do not remove this line, otherwise CurrentDomain_AssemblyResolve will throw a StackOverflowException
             this.logger.LogDebug(Resources.Resolver_Initialize);
-
+           
             AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
+
+            this.logger.LogDebug(Resources.Resolver_Initialize);
+
+            
         }
+
+
 
         private Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
         {
             // This line causes a StackOverflowException unless Resources has already been called upon previously
             this.logger.LogDebug(Resources.Resolver_ResolvingAssembly, args.Name, args?.RequestingAssembly?.FullName ?? Resources.Resolver_UnspecifiedRequestingAssembly);
-            Assembly asm;
+            Assembly asm = null;
 
             // The supplied assembly name could be a file name or an assembly full name. Work out which it is
             bool isFileName = Utilities.IsAssemblyLibraryFileName(args.Name);
@@ -81,23 +87,35 @@ namespace SonarQube.Plugins.Common
             {
                 foreach (string file in Directory.GetFiles(rootSearchPath, fileName, SearchOption.AllDirectories))
                 {
-                    asm = Assembly.LoadFile(file);
+                    //AppDomain.CurrentDomain.AssemblyResolve -= CurrentDomain_AssemblyResolve;
+                    try
+                    {
 
-                    if (
-                        // If the input was e.g foo.dll then compare against the file name...
-                        (isFileName && string.Equals(Path.GetFileName(asm.Location), fileName,  StringComparison.OrdinalIgnoreCase))
-                        ||
-                        // ... otherwise compare against the full name
-                        (!isFileName && string.Equals(args.Name, asm.FullName, StringComparison.OrdinalIgnoreCase))
-                        )
-                    {
-                        this.logger.LogDebug(Resources.Resolver_AssemblyLocated, file);
-                        return asm;
+                        asm = Assembly.LoadFile(file);                        
+
+                        if (
+                            // If the input was e.g foo.dll then compare against the file name...
+                            (isFileName &&
+                             string.Equals(Path.GetFileName(asm.Location), fileName, StringComparison.OrdinalIgnoreCase))
+                            ||
+                            // ... otherwise compare against the full name
+                            (!isFileName && string.Equals(args.Name, asm.FullName, StringComparison.OrdinalIgnoreCase))
+                            )
+                        {
+                            this.logger.LogDebug(Resources.Resolver_AssemblyLocated, file);
+
+                            return asm;
+                        }
+                        else
+                        {
+                            this.logger.LogDebug(Resources.Resolver_RejectedAssembly, asm.FullName);
+                        }
                     }
-                    else
+                    catch(Exception ex)
                     {
-                        this.logger.LogDebug(Resources.Resolver_RejectedAssembly, asm.FullName);
+                        this.logger.LogDebug(Resources.Resolver_FailedToResolveAssembly);
                     }
+                    //AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
                 }
             }
             this.logger.LogDebug(Resources.Resolver_FailedToResolveAssembly);

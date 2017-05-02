@@ -75,6 +75,9 @@ namespace SonarQube.Plugins.Roslyn
         [XmlElement(ElementName = "tag")]
         public string[] Tags { get; set; }
 
+        [XmlElement(ElementName = "system_tags")]
+        public string[] SystemTags { get; set; }
+
         /// <summary>
         /// Specified the culture and case when comparing rule keys
         /// </summary>

@@ -101,12 +101,30 @@ namespace SonarQube.Plugins.Roslyn
 
                 newRule.Description = GetDescriptionAsRawHtml(diagnostic);
 
-                newRule.Name = diagnostic.Title.ToString(CultureInfo.InvariantCulture);
+                newRule.Name = "[" + diagnostic.Id + "] - " + diagnostic.Title.ToString(CultureInfo.InvariantCulture);
                 newRule.Severity = GetSonarQubeSeverity(diagnostic.DefaultSeverity);
 
                 // Rule XML properties that don't have an obvious Diagnostic equivalent:
                 newRule.Cardinality = Cardinality;
                 newRule.Status = Status;
+                Console.WriteLine("Diag"+ diagnostic.Category);
+
+                if (diagnostic.Category.Length == 0)
+                {
+                    newRule.Tags = new string[]
+                    {
+                        "misc"
+                    };
+                }
+                else
+                {
+                    newRule.Tags = new string[]
+                    {
+                        diagnostic.Category.Replace("StyleCop.CSharp.", "").Replace(" ", "").Replace("Sonar", "").Replace("ExF.CodeConvention.Analyzers","Fintek Loyalty Analyzers").ToLower()
+                    };
+                }
+
+                //newRule.SystemTags = new string[] { diagnostic.Category };
 
                 // Diagnostic properties that don't have an obvious Rule xml equivalent:
                 //  diagnostic.Category
